@@ -1,0 +1,52 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# opennext / cloudflare
+.open-next/
+.wrangler/
+worker-configuration.d.ts
+
+# secrets — never commit
+.dev.vars
+.env
+.env.*
+!.env.example
+!.dev.vars.example
+
+# build + test output
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.vitest/
+*.tsbuildinfo
+
+# local data / seed caches
+/tmp/
+/.cache/
+/data/seed-cache/
+
+# editors + os
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# claude code local settings
+.claude/settings.local.json
