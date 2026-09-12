@@ -59,6 +59,43 @@ export const settings = sqliteTable("settings", {
 });
 
 /**
+ * Login credentials: a PBKDF2-SHA256 password hash plus a TOTP secret.
+ *
+ * Why this shape (see docs/research/r04-auth-for-single-user-on-workers.md):
+ *  - scrypt/bcrypt/argon2 do NOT run on workerd — PBKDF2 via WebCrypto is the only native
+ *    option, so the iteration count and salt are stored explicitly to allow future upgrades.
+ *  - `sessionVersion` is the revocation lever: bumping it invalidates every issued cookie
+ *    without needing to enumerate sessions. It is only ever evaluated when a request actually
+ *    reaches the Worker, so it never interferes with offline use.
+ *  - Passkeys are deliberately additive later: they will mint the SAME session cookie, so
+ *    nothing here has to change.
+ */
+export const credentials = sqliteTable("credentials", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** PBKDF2-SHA256 derived key, base64url. */
+  passwordHash: text("password_hash").notNull(),
+  /** Per-user random salt, base64url. */
+  passwordSalt: text("password_salt").notNull(),
+  /** Stored so the cost can be raised later without invalidating existing passwords. */
+  passwordIterations: integer("password_iterations").notNull(),
+  /** Base32 TOTP shared secret. */
+  totpSecret: text("totp_secret").notNull(),
+  /** Set once the user has proved they can generate a valid code from their authenticator. */
+  totpConfirmedAt: integer("totp_confirmed_at", { mode: "timestamp_ms" }),
+  /** Bump to revoke every outstanding session cookie at once. */
+  sessionVersion: integer("session_version").notNull().default(1),
+  /**
+   * Last accepted TOTP step counter. TOTP codes are valid for a 30s window, so without this a
+   * captured code could be replayed inside its own window.
+   */
+  lastTotpStep: integer("last_totp_step"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/**
  * Auth sessions. Opaque token id in a cookie; the row is the source of truth so a device can
  * be revoked. `expires_at` is checked on every request.
  */
