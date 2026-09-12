@@ -54,5 +54,9 @@
     "save": "Save",
     "delete": "Delete",
     "loading": "Loading…"
+  },
+  "Placeholder": {
+    "phase": "Phase {phase}",
+    "body": "This section is not built yet — it arrives in its own phase. The rest of the app works."
   }
 }
