@@ -36,7 +36,7 @@
 
 import { GRAMS_PER_KG, MAX_PLATE_COMBINATIONS } from "./constants";
 import { isFiniteNum, isPos, weightsEqual } from "./num";
-import { fromGrams, toGrams } from "./round";
+import { toGrams } from "./round";
 import type { PlateInventory, PlateStatus } from "./types";
 
 export type PlateResult = {
@@ -76,7 +76,8 @@ function usableInventory(inv: PlateInventory): UsablePlate[] | null {
 /** The smallest change the bar can make: twice the lightest plate available. */
 export function minIncrementKg(inv: PlateInventory): number | null {
   const usable = usableInventory(inv);
-  if (usable === null || usable.length === 0) return null;
+  if (usable === null) return null;
+  // `undefined` here means an empty inventory -- there is no increment to report.
   const lightest = usable[usable.length - 1];
   return lightest === undefined ? null : lightest.kg * 2;
 }
@@ -90,13 +91,19 @@ export function minIncrementKg(inv: PlateInventory): number | null {
  */
 function isBetterList(a: readonly number[], b: readonly number[]): boolean {
   if (a.length !== b.length) return a.length < b.length;
-  for (let i = 0; i < a.length; i++) {
-    const av = a[i];
-    const bv = b[i];
-    if (av === undefined || bv === undefined) break;
-    if (av !== bv) return av > bv;
-  }
-  return false;
+  return listKey(a) > listKey(b);
+}
+
+/**
+ * A lexicographically comparable key for a descending plate list.
+ *
+ * Comparing the lists element by element would mean indexed reads that `noUncheckedIndexedAccess`
+ * types as possibly-`undefined` even though equal lengths make that impossible -- and an
+ * impossible branch is an untestable one. Zero-padded grams give the same ordering as an
+ * element-wise comparison with none of that.
+ */
+function listKey(list: readonly number[]): string {
+  return list.map((kg) => String(Math.round(kg * GRAMS_PER_KG)).padStart(9, "0")).join("");
 }
 
 /**
@@ -108,10 +115,7 @@ function isBetterList(a: readonly number[], b: readonly number[]): boolean {
  * @returns the lattice, or `null` for an invalid bar or inventory, or if the inventory is so large
  *          that enumeration would hang a render rather than answer a question.
  */
-export function achievableTotals(
-  barKg: number,
-  inv: PlateInventory,
-): Map<number, number[]> | null {
+export function achievableTotals(barKg: number, inv: PlateInventory): Map<number, number[]> | null {
   if (!isPos(barKg)) return null;
   const barGrams = toGrams(barKg);
   if (barGrams === null) return null;
@@ -191,36 +195,30 @@ export function plateMath(
     return bareBar(targetGrams === barGrams ? "EXACT" : "NO_INVENTORY");
   }
 
-  let bestGrams: number | null = null;
+  // Seeded with the empty bar, which is always in the lattice and -- since `BELOW_BAR` already
+  // returned -- always at or below the target. That makes both modes total: there is no "found
+  // nothing" case to defend against.
+  let bestGrams = barGrams;
   let bestList: number[] = [];
   for (const [grams, list] of totals) {
-    if (mode === "roundDown" && grams > targetGrams) continue;
-    if (bestGrams === null) {
-      bestGrams = grams;
-      bestList = list;
-      continue;
-    }
     if (mode === "roundDown") {
-      if (grams > bestGrams) {
+      if (grams <= targetGrams && grams > bestGrams) {
         bestGrams = grams;
         bestList = list;
       }
       continue;
     }
     const delta = Math.abs(grams - targetGrams) - Math.abs(bestGrams - targetGrams);
-    // `delta === 0` is the tie, broken upward.
+    // `delta === 0` is the tie, and it breaks upward.
     if (delta < 0 || (delta === 0 && grams > bestGrams)) {
       bestGrams = grams;
       bestList = list;
     }
   }
 
-  // `roundDown` can find nothing only if even the empty bar exceeds the target, which the
-  // `BELOW_BAR` branch above already returned.
-  if (bestGrams === null) return bareBar("NO_INVENTORY");
-
-  const achievedKg = fromGrams(bestGrams);
-  if (achievedKg === null) return null;
+  // Both are exact integer-gram quantities, so this division is the only float operation in the
+  // whole computation and it happens once, at the boundary.
+  const achievedKg = bestGrams / GRAMS_PER_KG;
   const errorKg = (bestGrams - targetGrams) / GRAMS_PER_KG;
   return {
     status: weightsEqual(achievedKg, targetKg) ? "EXACT" : "ROUNDED",

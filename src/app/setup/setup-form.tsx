@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -20,6 +21,8 @@ type BeginResponse = { ok: true; otpauthUri: string; secret: string };
  * the server, and never stored, logged or echoed anywhere.
  */
 export function SetupForm() {
+  const t = useTranslations("Setup");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [step, setStep] = useState<"password" | "totp">("password");
   const [password, setPassword] = useState("");
@@ -33,7 +36,7 @@ export function SetupForm() {
     event.preventDefault();
     setError(null);
     if (password !== confirm) {
-      setError("Пароли не совпадают.");
+      setError(t("mismatch"));
       return;
     }
     setPending(true);
@@ -48,7 +51,7 @@ export function SetupForm() {
         reason?: string;
       };
       if (!response.ok || !data.otpauthUri || !data.secret) {
-        setError(data.reason ?? "Не удалось сохранить пароль.");
+        setError(data.reason ?? t("saveFailed"));
         return;
       }
       setEnrolment({ ok: true, otpauthUri: data.otpauthUri, secret: data.secret });
@@ -57,7 +60,7 @@ export function SetupForm() {
       setPassword("");
       setConfirm("");
     } catch {
-      setError("Нет связи с сервером.");
+      setError(tCommon("networkError"));
     } finally {
       setPending(false);
     }
@@ -77,9 +80,9 @@ export function SetupForm() {
         router.replace("/");
         return;
       }
-      setError("Код не подошёл. Проверьте время на телефоне и попробуйте снова.");
+      setError(t("badCode"));
     } catch {
-      setError("Нет связи с сервером.");
+      setError(tCommon("networkError"));
     } finally {
       setPending(false);
     }
@@ -89,7 +92,7 @@ export function SetupForm() {
     return (
       <form onSubmit={submitPassword} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Придумайте пароль</Label>
+          <Label htmlFor="password">{t("passwordLabel")}</Label>
           <Input
             id="password"
             type="password"
@@ -100,12 +103,10 @@ export function SetupForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="min-h-tap text-base"
           />
-          <p className="text-muted-foreground text-xs">
-            Не короче 12 символов. Лучше длинная фраза, чем короткий набор символов.
-          </p>
+          <p className="text-muted-foreground text-xs">{t("passwordHint")}</p>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="confirm">Повторите пароль</Label>
+          <Label htmlFor="confirm">{t("confirmLabel")}</Label>
           <Input
             id="confirm"
             type="password"
@@ -126,7 +127,7 @@ export function SetupForm() {
           disabled={pending}
           className="min-h-tap w-full text-base font-semibold"
         >
-          {pending ? "Сохраняем…" : "Далее"}
+          {pending ? t("saving") : t("next")}
         </Button>
       </form>
     );
@@ -135,28 +136,24 @@ export function SetupForm() {
   return (
     <form onSubmit={submitCode} className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <p className="text-sm">
-          Отсканируйте код в приложении-аутентификаторе (Google Authenticator, Aegis, 1Password),
-          затем введите шестизначный код.
-        </p>
+        <p className="text-sm">{t("scanIntro")}</p>
         {enrolment ? (
           <div className="flex justify-center rounded-xl bg-white p-3">
-            <QrCode value={enrolment.otpauthUri} label="QR-код для приложения-аутентификатора" />
+            <QrCode value={enrolment.otpauthUri} label={t("qrLabel")} />
           </div>
         ) : null}
         <details className="text-muted-foreground text-xs">
           <summary className="min-h-tap flex cursor-pointer items-center">
-            Не получается отсканировать?
+            {t("cannotScan")}
           </summary>
           <p className="mt-2 break-all">
-            Введите этот ключ вручную:{" "}
-            <code className="text-foreground font-mono">{enrolment?.secret}</code>
+            {t("manualKey")} <code className="text-foreground font-mono">{enrolment?.secret}</code>
           </p>
         </details>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="code">Код из приложения</Label>
+        <Label htmlFor="code">{t("codeLabel")}</Label>
         <Input
           id="code"
           inputMode="numeric"
@@ -177,12 +174,9 @@ export function SetupForm() {
       ) : null}
 
       <Button type="submit" disabled={pending} className="min-h-tap w-full text-base font-semibold">
-        {pending ? "Проверяем…" : "Завершить настройку"}
+        {pending ? t("checking") : t("finish")}
       </Button>
-      <p className="text-muted-foreground text-xs">
-        Сохраните ключ в менеджере паролей. Без него и без пароля восстановить доступ можно только
-        через консоль базы данных.
-      </p>
+      <p className="text-muted-foreground text-xs">{t("saveKeyWarning")}</p>
     </form>
   );
 }

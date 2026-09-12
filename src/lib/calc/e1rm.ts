@@ -130,10 +130,14 @@ export function e1rm(
   // (c) `reps` is now pinned to [1, 12], which is inside both formulas' domains.
   if (reps > MAX_REPS_FOR_E1RM) return null;
 
-  // (d)
+  // (d) The comparison is epsilon-aware, and that is not defensive padding. The two formulas are
+  // algebraically identical at 10 reps (`1 + 10/30 = 4/3` and `36/27 = 4/3`), but they are not
+  // identical in IEEE-754: `w * (1 + 10/30)` and `(w * 36) / 27` are evaluated in different orders,
+  // and at w = 100 they differ by 2.8e-14 kg with Brzycki on top. A raw `>` would therefore
+  // attribute every 10-rep set to Brzycki on the strength of 28 femtograms.
   const fromEpley = epleyRaw(weightKg, reps);
   const fromBrzycki = brzyckiRaw(weightKg, reps);
-  const brzyckiWins = fromBrzycki > fromEpley;
+  const brzyckiWins = weightLt(fromEpley, fromBrzycki);
   const base = brzyckiWins ? fromBrzycki : fromEpley;
   const baseSource: E1rmSource = brzyckiWins ? "brzycki" : "epley";
 

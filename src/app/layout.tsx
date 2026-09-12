@@ -1,4 +1,6 @@
 import { SerwistProvider } from "@serwist/next/react";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
@@ -42,10 +44,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Locale comes from a cookie, resolved in src/i18n/request.ts. The provider also inherits
+  // the pinned Asia/Almaty timezone, so client-side date formatting cannot drift to UTC.
+  const locale = await getLocale();
+
   return (
     <html
-      lang="ru"
+      lang={locale}
       // `dark` is permanent: this is a dark-first single-user app.
       className={`dark h-full ${appSans.variable} ${appMono.variable}`}
       suppressHydrationWarning
@@ -53,7 +59,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         {/* Registers /sw.js. The SW is emitted to public/sw.js by `serwist build`, so on
             Cloudflare it is served by the static-asset layer rather than the Worker. */}
-        <SerwistProvider swUrl="/sw.js">{children}</SerwistProvider>
+        <SerwistProvider swUrl="/sw.js">
+          <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        </SerwistProvider>
       </body>
     </html>
   );

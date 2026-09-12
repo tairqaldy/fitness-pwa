@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
  * autocomplete contract password managers understand, and a numeric keypad for the code.
  */
 export function LoginForm({ next }: { next: string }) {
+  const t = useTranslations("Login");
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -36,14 +38,10 @@ export function LoginForm({ next }: { next: string }) {
         return;
       }
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(
-        data.error === "setup_required"
-          ? "Приложение ещё не настроено. Откройте /setup."
-          : "Неверный пароль или код. Попробуйте ещё раз.",
-      );
+      setError(data.error === "setup_required" ? t("setupRequired") : t("failed"));
     } catch {
       // The login screen is reachable offline (it is precached), but logging in is not.
-      setError("Нет связи с сервером. Для входа нужен интернет.");
+      setError(t("offline"));
     } finally {
       setPending(false);
     }
@@ -52,7 +50,7 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Пароль</Label>
+        <Label htmlFor="password">{t("passwordLabel")}</Label>
         <Input
           id="password"
           name="password"
@@ -66,7 +64,7 @@ export function LoginForm({ next }: { next: string }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="code">Код из приложения</Label>
+        <Label htmlFor="code">{t("codeLabel")}</Label>
         <Input
           id="code"
           name="code"
@@ -91,7 +89,7 @@ export function LoginForm({ next }: { next: string }) {
       ) : null}
 
       <Button type="submit" disabled={pending} className="min-h-tap w-full text-base font-semibold">
-        {pending ? "Проверяем…" : "Войти"}
+        {pending ? t("checking") : t("submit")}
       </Button>
     </form>
   );

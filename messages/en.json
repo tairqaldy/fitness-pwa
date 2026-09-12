@@ -1,0 +1,58 @@
+{
+  "App": {
+    "name": "Forma",
+    "tagline": "A personal log for training, food and progress."
+  },
+  "Nav": {
+    "home": "Home",
+    "workout": "Workout",
+    "food": "Food",
+    "body": "Body",
+    "stats": "Stats",
+    "quickAdd": "Quick add"
+  },
+  "Setup": {
+    "eyebrow": "First run",
+    "title": "Set up sign-in",
+    "intro": "A password and a code from your authenticator. After this the app will not ask again for a year — so it opens instantly at the gym and works without a connection.",
+    "passwordLabel": "Choose a password",
+    "passwordHint": "At least 12 characters. A long phrase beats a short jumble.",
+    "confirmLabel": "Repeat the password",
+    "mismatch": "The passwords do not match.",
+    "next": "Continue",
+    "saving": "Saving…",
+    "scanIntro": "Scan the code in an authenticator app (Google Authenticator, Aegis, 1Password), then enter the six-digit code.",
+    "cannotScan": "Cannot scan it?",
+    "manualKey": "Enter this key manually:",
+    "qrLabel": "QR code for your authenticator app",
+    "finish": "Finish setup",
+    "checking": "Checking…",
+    "badCode": "That code did not work. Check the clock on your phone and try again.",
+    "saveKeyWarning": "Save the key in a password manager. Without it and the password, access can only be restored from the database console.",
+    "saveFailed": "Could not save the password.",
+    "codeLabel": "Authenticator code"
+  },
+  "Login": {
+    "title": "Forma",
+    "intro": "You only sign in once — the session lasts a year so the app opens straight away at the gym.",
+    "passwordLabel": "Password",
+    "codeLabel": "Authenticator code",
+    "submit": "Sign in",
+    "checking": "Checking…",
+    "failed": "Wrong password or code. Try again.",
+    "setupRequired": "The app is not set up yet. Open /setup.",
+    "offline": "No connection to the server. Signing in needs the internet."
+  },
+  "Offline": {
+    "title": "No connection",
+    "body": "This page has not been saved for offline use yet. You can keep logging your workout — everything is stored on your phone and sent when the network is back."
+  },
+  "Common": {
+    "networkError": "No connection to the server.",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "loading": "Loading…"
+  }
+}

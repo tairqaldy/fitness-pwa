@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { credentials } from "@/db/schema";
@@ -6,7 +7,10 @@ import { getDb } from "@/server/db";
 
 import { SetupForm } from "./setup-form";
 
-export const metadata: Metadata = { title: "Настройка" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Setup");
+  return { title: t("title") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +26,16 @@ export default async function SetupPage() {
   // never reset the owner's password.
   if (credential?.confirmedAt) redirect("/login");
 
+  const t = await getTranslations("Setup");
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-5 py-10">
       <header className="flex flex-col gap-2">
         <p className="text-muted-foreground text-sm font-medium tracking-widest uppercase">
-          Первый запуск
+          {t("eyebrow")}
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Настройка входа</h1>
-        <p className="text-muted-foreground text-sm">
-          Пароль и код из приложения. Дальше приложение не будет спрашивать вход целый год — чтобы в
-          зале открывалось мгновенно и работало без интернета.
-        </p>
+        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+        <p className="text-muted-foreground text-sm">{t("intro")}</p>
       </header>
       <SetupForm />
     </main>
