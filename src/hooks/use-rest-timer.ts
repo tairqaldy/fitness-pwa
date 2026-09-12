@@ -41,8 +41,13 @@ export function useRestTimer(onElapsed?: () => void): UseRestTimer {
   // Ref rather than state: firing the completion effect must not depend on render order, and
   // it must fire exactly once per timer.
   const firedRef = useRef(false);
+  // The "latest callback" ref must be updated in an effect, never during render: writing to a
+  // ref while rendering is unsafe under concurrent rendering, where a render can be discarded
+  // or replayed.
   const onElapsedRef = useRef(onElapsed);
-  onElapsedRef.current = onElapsed;
+  useEffect(() => {
+    onElapsedRef.current = onElapsed;
+  }, [onElapsed]);
 
   const start = useCallback((durationSec: number) => {
     firedRef.current = false;
