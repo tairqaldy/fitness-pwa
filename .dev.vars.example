@@ -1,0 +1,34 @@
+# Copy to .dev.vars (git-ignored) and fill in. Never commit real values.
+# In production these are set with: npx wrangler secret put <NAME>
+
+NEXTJS_ENV=development
+
+# --- Session signing (required) ---------------------------------------------
+# Generate with: node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"
+SESSION_SECRET=
+
+# --- AI (optional; food photo + coach degrade gracefully without it) --------
+# Get one at https://aistudio.google.com/apikey
+GOOGLE_GENERATIVE_AI_API_KEY=
+# Optional alternates, only needed if you switch AI_PROVIDER
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+
+# --- Telegram notifications (optional) -------------------------------------
+# From @BotFather. TELEGRAM_CHAT_ID locks the bot to you alone.
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+# Random string; verifies inbound webhook calls really came from Telegram.
+TELEGRAM_WEBHOOK_SECRET=
+
+# --- Web push (optional) ---------------------------------------------------
+# Generate a VAPID keypair with: npx web-push generate-vapid-keys
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+
+# --- Nutrition databases (optional) ----------------------------------------
+# Free key: https://fdc.nal.usda.gov/api-key-signup.html
+USDA_FDC_KEY=
+
+# --- Cron -> internal route shared secret ----------------------------------
+CRON_SECRET=

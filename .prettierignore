@@ -1,0 +1,12 @@
+.next/
+.open-next/
+.wrangler/
+node_modules/
+cloudflare-env.d.ts
+next-env.d.ts
+drizzle/migrations/
+package-lock.json
+
+# Prose. Specs and research notes are hand/agent-authored documents; letting Prettier
+# reflow them produces enormous diffs and fights concurrent edits for no benefit.
+**/*.md

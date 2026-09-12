@@ -1,0 +1,56 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fitness-pwa",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+
+  // App data. `migrations_dir` is where `wrangler d1 migrations apply` looks; drizzle-kit
+  // is configured (drizzle.config.ts) to generate into the same folder.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fitness-pwa-db",
+      "database_id": "015af493-640c-448e-b8a6-3223321d4fe6",
+      "migrations_dir": "drizzle/migrations",
+    },
+    // Hardcoded OpenNext name — a typo here fails silently. Deliberately a SEPARATE
+    // database: OpenNext creates its own `revalidations` table, and keeping it out of the
+    // app schema removes a whole class of false-positive migration drift.
+    // See docs/research/r02 §3 rule 7.
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "fitness-pwa-cache-db",
+      "database_id": "57c19114-c433-4697-b43c-e40d6c054f59",
+    },
+  ],
+
+  "r2_buckets": [
+    // User media: food photos, progress photos, exercise GIFs. Never public.
+    { "binding": "MEDIA", "bucket_name": "fitness-pwa-media" },
+    // Hardcoded OpenNext name for the incremental cache.
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "fitness-pwa-cache" },
+  ],
+
+  "kv_namespaces": [{ "binding": "CACHE_KV", "id": "9b0bf0d15d694b1c9efa0b6a643f07cc" }],
+
+  // Lets a cron handler call back into the app over HTTP when a job must run inside Next.
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "fitness-pwa" }],
+
+  "vars": {
+    "APP_TZ": "Asia/Almaty",
+    "AI_PROVIDER": "google",
+    "DEFAULT_LOCALE": "ru",
+  },
+
+  // NOTE: no `NEXT_CACHE_DO_QUEUE` Durable Object binding, and `open-next.config.ts`
+  // deliberately omits the `queue` override to match. Adding one without the other is a
+  // silent-failure mode. Add both together in the phase that first calls
+  // revalidatePath()/revalidateTag(). See docs/research/r12 §H.
+  //
+  // NOTE: `triggers.crons` is added in the phase that ships scheduled jobs, together with
+  // the custom `worker.ts` entry. Removing a cron from this block does NOT delete the
+  // deployed trigger (docs/research/r01 §4.4) — use `wrangler triggers deploy`.
+}
