@@ -85,7 +85,13 @@ Neither requires `next build --webpack`. Phase 1 must pick one and record it in 
 
 ## Worker platform limits that constrain design
 
-- CPU: 5 min per HTTP request, 15 min per Cron Trigger. Memory 128 MB.
+- CPU (Workers Paid): per HTTP request the **default is 30 s**, raisable to 5 min via
+  `limits.cpu_ms`. Per Cron Trigger it depends on the interval — **30 s for a sub-hourly cron**,
+  15 min only when the schedule is >= 1 hour apart. Keep every cron >= 1 h apart or the budget
+  silently drops 30x. Wall-clock Duration for a cron is a hard 15 min and network waits count
+  against it (they do not count against CPU). Corrected by
+  [r01 §4.1](./r01-cron-triggers-on-opennext.md) — verified against the official limits table.
+- Memory 128 MB.
 - R2 egress is $0; storage $0.015/GB-mo; Class A $4.50/M ops, Class B $0.36/M ops.
 - D1 free tier 5 GB storage, 5M reads/day.
 - Workers Paid $5/mo covers 10M requests + 30M CPU-ms.
