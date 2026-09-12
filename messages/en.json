@@ -58,5 +58,13 @@
   "Placeholder": {
     "phase": "Phase {phase}",
     "body": "This section is not built yet — it arrives in its own phase. The rest of the app works."
+  },
+  "Rest": {
+    "title": "Rest",
+    "remaining": "{time} remaining",
+    "done": "Rest is over",
+    "minus15": "Minus 15 seconds",
+    "plus15": "Plus 15 seconds",
+    "skip": "Skip rest"
   }
 }
