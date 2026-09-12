@@ -83,7 +83,7 @@ export type TdeeStatus =
   | "NO_PRIOR";
 
 export type TdeeInput = {
-  /** Epoch ms UTC -- the window anchor the caller used. Never `Date.now()` inside this module. */
+  /** Epoch ms UTC -- the window anchor the caller used. The clock is never read inside calc. */
   nowMs: number;
   /** Mifflin-St Jeor or Katch-McArdle, already multiplied by the activity factor. */
   priorKcal: number | null;

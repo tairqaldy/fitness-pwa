@@ -3,9 +3,9 @@
  *
  * Two rules shape this file.
  *
- * **1. No ambient time.** Nothing here reads the clock. `Date.now()` and the zero-argument
- * `new Date()` appear nowhere in `src/lib/calc`; every function that needs the current instant
- * takes `nowMs` as its first parameter. That is what makes the tests deterministic, and it is also
+ * **1. No ambient time.** Nothing here reads the clock. Neither `Date.now` nor the zero-argument
+ * `Date` constructor appears anywhere in `src/lib/calc` -- a test greps for both -- and every
+ * function that needs the current instant takes `nowMs` as its first parameter. That is what makes the tests deterministic, and it is also
  * what lets the same code run server-side in a Cron batch and client-side over Dexie's replay
  * queue and produce bit-identical results.
  *
@@ -169,13 +169,17 @@ export function dayIndex(d: LocalDate): number | null {
   return Date.UTC(parts.year, parts.month - 1, parts.day) / MS_PER_DAY;
 }
 
+/** `YYYY-MM-DD` for a day index already known to be in range. */
+function localDateFromDaysRaw(index: number): LocalDate {
+  const d = new Date(index * MS_PER_DAY);
+  return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)}`;
+}
+
 /** The inverse of `dayIndex`. */
 export function localDateFromDayIndex(index: number): LocalDate | null {
   if (!Number.isInteger(index)) return null;
-  const ms = index * MS_PER_DAY;
-  if (Math.abs(ms) > MAX_TIME_MS) return null;
-  const d = new Date(ms);
-  return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)}`;
+  if (Math.abs(index * MS_PER_DAY) > MAX_TIME_MS) return null;
+  return localDateFromDaysRaw(index);
 }
 
 /** `dayIndex(b) - dayIndex(a)`. Positive when `b` is the later date. */
@@ -203,14 +207,19 @@ export function startOfLocalDayMs(d: LocalDate): number | null {
 }
 
 /**
- * The last representable instant of a local calendar day: `23:59:59.999` local.
+ * The last instant of a local calendar day, one millisecond before the next day opens.
  *
- * `Asia/Almaty`'s only transition took effect at local midnight, so no local day in this zone is
- * ever shorter or longer than 24 hours and the arithmetic is exact.
+ * Computed from the *next* day's own offset rather than as `start + 24 h`, because a local day is not
+ * always 24 hours long. `2024-02-29` in `Asia/Almaty` is **25 hours**: at `18:00Z` that day the zone
+ * moved from UTC+6 to UTC+5, so local `23:00`-`24:00` happened twice and the day did not close until
+ * `2024-02-29T19:00Z`. A 24-hour assumption would put this boundary an hour early and quietly drop an
+ * hour of that day's imported sets.
  */
 export function endOfLocalDayMs(d: LocalDate): number | null {
-  const start = startOfLocalDayMs(d);
-  return start === null ? null : start + MS_PER_DAY - 1;
+  const index = dayIndex(d);
+  if (index === null) return null;
+  const nextDayMs = startOfLocalDayMs(localDateFromDaysRaw(index + 1));
+  return nextDayMs === null ? null : nextDayMs - 1;
 }
 
 /**
@@ -228,9 +237,17 @@ export function rolling7dWindow(
   if (endDate === null) return null;
   const endIndex = dayIndex(endDate);
   if (endIndex === null) return null;
-  const startDate = localDateFromDayIndex(endIndex - (ROLLING_WINDOW_DAYS - 1));
-  const startMs = startDate === null ? null : startOfLocalDayMs(startDate);
+
+  // `endIndex` came from a four-digit-year date, so shifting it six days cannot leave the
+  // representable range -- but the *result* can be a date the calendar cannot express (year 0099,
+  // which `Date.UTC` remaps to 1999), and the day after `9999-12-31` has no four-digit year either.
+  const startDate = localDateFromDaysRaw(endIndex - (ROLLING_WINDOW_DAYS - 1));
+  const startMs = startOfLocalDayMs(startDate);
+
+  // `endMs` must come from the end day's own bounds, not from `startMs + 7 days`: the window that
+  // spans the 2024-03-01 transition is seven local days but only 167 hours long, and assuming 168
+  // would push `endMs` an hour into the following day.
   const endMs = endOfLocalDayMs(endDate);
-  if (startDate === null || startMs === null || endMs === null) return null;
+  if (startMs === null || endMs === null) return null;
   return { startDate, endDate, startMs, endMs };
 }

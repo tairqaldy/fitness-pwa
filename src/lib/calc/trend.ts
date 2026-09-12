@@ -121,9 +121,7 @@ export function trendWeight(readings: readonly WeightReading[]): TrendPoint[] | 
     // one careless caller away, and the failure mode is a trend line that simply stops moving.
     const gap = Math.max(1, reading.day - trendDay);
     const alphaEff = 1 - Math.pow(1 - TREND_ALPHA, gap);
-    const next = emaStep(trend, reading.kg, alphaEff);
-    if (next === null) return null;
-    trend = next;
+    trend = emaStepRaw(trend, reading.kg, alphaEff);
     out.push({ localDate: reading.localDate, kg: reading.kg, trendKg: trend, excluded: false });
     trendDay = reading.day;
   }

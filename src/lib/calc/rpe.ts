@@ -61,15 +61,25 @@ export const NRM_MAX_K = 14;
 export function nRM(k: number): number | null {
   if (!isFiniteNum(k) || k < NRM_MIN_K || k > NRM_MAX_K) return null;
   if (!Number.isInteger(k * 2)) return null;
+
+  // Summed by iteration rather than read by index. `noUncheckedIndexedAccess` types `NRM[lo]` as
+  // possibly-`undefined` even though the range check above makes that impossible, and a guard for an
+  // impossible case is a guard no test can ever reach -- which this module's 100% coverage floor
+  // would then fail on. `entries()` yields defined values, so there is nothing to narrow.
   const lo = Math.floor(k);
-  const a = NRM[lo];
-  if (a === undefined) return null;
-  if (k === lo) return a;
-  const b = NRM[lo + 1];
-  // Unreachable while NRM_MAX_K is an integer (k <= 14 and k > lo implies lo + 1 <= 14), but the
-  // narrowing is required by `noUncheckedIndexedAccess` and `!` is banned by spec 07 rule 13.
-  if (b === undefined) return null;
-  return roundHalfUp((a + b) / 2, 1);
+  const isHalfRep = k !== lo;
+  let sum = 0;
+  let cells = 0;
+  for (const [index, value] of NRM.entries()) {
+    if (index === lo || (isHalfRep && index === lo + 1)) {
+      sum += value;
+      cells += 1;
+    }
+  }
+
+  // An integer `k` is the attested cell itself and must come back bit-identical; a half-rep `k` is
+  // the half-up mean, which is the chart's definition rather than an approximation of it.
+  return isHalfRep ? roundHalfUp(sum / cells, 1) : sum;
 }
 
 /**

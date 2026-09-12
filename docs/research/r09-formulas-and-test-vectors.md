@@ -1611,3 +1611,55 @@ Every numeric value in this note was recomputed by script. The scripts live in t
 scratchpad (`calc1.py` … `calc6.py`) at
 `C:/Users/tairc/AppData/Local/Temp/claude/C--Users-tairc-Documents-codespace-fitness-app-tair/85fb1989-5a8f-448f-9e9a-162342b812b6/scratchpad/`
 and are **not** part of the project. They are disposable; the tables above are the artifact.
+
+---
+
+## CORRECTION (added 2026-09-13, after implementation)
+
+Two items in this note were found to be wrong while implementing `src/lib/calc`. They are
+recorded here because this file is used as the numeric oracle for the unit tests.
+
+### 1. "Epley(w,10) === Brzycki(w,10) exactly" is FALSE in IEEE-754
+
+§1 proposes as a property test that, since both formulas are algebraically `4w/3`, they are
+exactly equal at 10 reps. They are not: the two expressions evaluate in different orders
+(`w*(1+10/30)` vs `(w*36)/27`) and the rounding differs. Independently reproduced:
+
+| w (kg) | Epley | Brzycki | equal? |
+|---|---|---|---|
+| 0.5 | 0.66666666666666662966 | 0.66666666666666662966 | yes |
+| 2.5 | 3.3333333333333330373 | 3.3333333333333334814 | **no** |
+| 20 | 26.666666666666664298 | 26.666666666666667851 | **no** |
+| 60 | 80 | 80 | yes |
+| **100** | 133.33333333333331439 | 133.33333333333334281 | **no** |
+| 140 | 186.66666666666665719 | 186.66666666666665719 | yes |
+
+20 kg and 100 kg are among the most common loads in a gym, so this is not a corner case. A raw
+`>` comparison in `bestE1rm` makes it report `'brzycki'` as the winning source at exactly 10
+reps, contradicting spec 07's expected `'epley'`.
+
+**Resolution:** comparisons use the exported `WEIGHT_EPSILON_KG` helper, and the test asserts
+`toBeCloseTo(4/3 * w, 10)` rather than `===`. Never compare two computed weights with `===`.
+
+### 2. The suggested `roundHalfUp1` technique is unreliable
+
+§4 suggests `Math.round(x * 10 + Number.EPSILON * 10) / 10`. `Number.EPSILON` is the ulp at
+magnitude 1; at magnitude ~938 one ulp is ≈1.1e-13, so a 2.2e-15 nudge cannot cross a rounding
+boundary. It appears to work for this note's vectors only because 93.85 / 79.85 / 69.35 already
+scale to exactly 938.5 / 798.5 / 693.5. The implementation re-normalises with `toPrecision(15)`
+instead. The *numbers* in §4 are correct; only the suggested technique is not.
+
+### 3. Confirmed correct
+
+Everything else reproduced exactly: all e1RM and R1–R6 vectors, the nRM column and published
+RPE grid, M1/M2/F1/F2 to 4 dp, the 10-day trend series to 6 dp, the gap-aware 81.974133, TDEE
+weeks 1–4, all plate vectors including the exact 99–105 lattice, W1/W2, the full volume week,
+and the window bounds 1788721200000 / 1789325999999.
+
+### 4. A bug this note's §8 warning caught
+
+`endOfLocalDayMs` cannot be `startOfLocalDay + 24h`. Asia/Almaty moved its clock **backward** an
+hour at `2024-02-29T18:00Z`, so local 2024-02-29 is **25 hours** long and a rolling-7-day window
+spanning 2024-02-24…2024-03-01 is 167 hours, not 168. The offset must always be resolved through
+`Intl.DateTimeFormat` with an explicit `timeZone`, never by arithmetic on a hardcoded `+05:00`.
+This only ever surfaces on imported pre-2024 history.

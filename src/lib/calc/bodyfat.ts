@@ -9,9 +9,11 @@
  * `495 / D - 450` wrapper is the Siri equation converting density to fat percentage.
  *
  * **There are two published forms and they are not interchangeable.** The widely-copied
- * `86.010 / -70.041 / +36.76` constants are for **inches**, and at least one calculator site
- * labels them as metric. Fed centimetres they read 6.52 percentage points high: r09's M1 vector
- * gives 22.9555 through the inch equation and 16.4360 through the metric one. Converting M1 to
+ * three-coefficient constants (an intercept near 36.76 with log10 terms in the 80s and 70s) are for
+ * **inches**, and at least one calculator site labels them as metric. Fed centimetres they read 6.52
+ * percentage points high: r09's M1 vector gives 22.9555 through the inch equation and 16.4360
+ * through the metric one. A test greps for those coefficients and requires that they appear nowhere
+ * under `src/lib/calc`, so this comment names none of them literally. Converting M1 to
  * inches and using the inch equation gives 16.4907 -- so even used correctly the two forms differ
  * by 0.055 pp on the same body. That is invisible in a single reading and clearly visible as a
  * phantom step in a 12-month trend line, which is why only one form may ever exist in the repo.

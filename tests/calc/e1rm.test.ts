@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { brzycki, e1rm, e1rmFromRpe, epley, MAX_REPS_FOR_E1RM, RPE_INFLATION_CAP } from "@/lib/calc";
+import {
+  brzycki,
+  e1rm,
+  e1rmFromRpe,
+  epley,
+  MAX_REPS_FOR_E1RM,
+  RPE_INFLATION_CAP,
+} from "@/lib/calc";
 
 import { COMPOSITE_VECTORS, E1RM_VECTORS, R6_UNCAPPED_KG } from "./fixtures/r09-vectors";
 
@@ -135,14 +142,11 @@ describe("e1rm", () => {
     expect(e1rm(100, MAX_REPS_FOR_E1RM + 1)).toBeNull();
   });
 
-  it.each(COMPOSITE_VECTORS)(
-    "%s",
-    (_label, weightKg, reps, rpe, expectedKg, expectedSource) => {
-      const actual = e1rm(weightKg, reps, rpe);
-      expect(actual?.kg).toBeCloseTo(expectedKg, 4);
-      expect(actual?.source).toBe(expectedSource);
-    },
-  );
+  it.each(COMPOSITE_VECTORS)("%s", (_label, weightKg, reps, rpe, expectedKg, expectedSource) => {
+    const actual = e1rm(weightKg, reps, rpe);
+    expect(actual?.kg).toBeCloseTo(expectedKg, 4);
+    expect(actual?.source).toBe(expectedSource);
+  });
 
   it("R6: the inflation cap is what stops an unbeatable PR", () => {
     // Uncapped, one optimistic RPE on a high-rep back-off set sets a permanent PR and flattens the
