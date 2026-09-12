@@ -16,7 +16,11 @@ import { readSession, SESSION_COOKIE } from "@/lib/auth/session";
  */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js|offline|login|setup|api/auth|api/telegram|api/cron|api/health).*)",
+    // NOTE the tilde in `~offline`: the offline shell lives at /~offline, and writing
+    // `offline` here does NOT match it. Getting this wrong makes the shell return 401, and
+    // because a single failing entry aborts the WHOLE service-worker install, that silently
+    // breaks the entire PWA. Verified against production.
+    "/((?!_next/static|_next/image|favicon.ico|icons/|manifest.webmanifest|sw.js|~offline|login|setup|api/auth|api/telegram|api/cron|api/health).*)",
   ],
 };
 

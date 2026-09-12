@@ -1,3 +1,4 @@
+import { SerwistProvider } from "@serwist/next/react";
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
@@ -26,6 +27,8 @@ export const metadata: Metadata = {
   applicationName: "Форма",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Форма" },
   formatDetection: { telephone: false },
+  // iOS ignores the manifest icons entirely and uses this.
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -47,7 +50,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`dark h-full ${appSans.variable} ${appMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {/* Registers /sw.js. The SW is emitted to public/sw.js by `serwist build`, so on
+            Cloudflare it is served by the static-asset layer rather than the Worker. */}
+        <SerwistProvider swUrl="/sw.js">{children}</SerwistProvider>
+      </body>
     </html>
   );
 }

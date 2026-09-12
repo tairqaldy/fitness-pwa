@@ -19,6 +19,9 @@ const eslintConfig = defineConfig([
     ".open-next/**",
     ".wrangler/**",
     "drizzle/migrations/**",
+    // Emitted by `serwist build` — a bundled service worker, not source.
+    "public/sw.js",
+    "public/sw.js.map",
   ]),
 ]);
 
