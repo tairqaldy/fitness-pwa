@@ -327,32 +327,62 @@ describe("adaptiveTdee -- statuses", () => {
   });
 
   it("SUSPECT_WEIGHT_CHANGE still returns a number -- it is a badge, not a block", () => {
-    const actual = adaptiveTdee(
-      anInput({ trendStartKg: 82.4, trendEndKg: 81.2, bodyWeightKg: 82 }),
-    );
+    // 4.4 kg over 28 days is 1.1 kg/week, above 1% of 82 kg (0.82 kg/week).
+    const actual = adaptiveTdee(anInput({ trendStartKg: 82.4, trendEndKg: 78, bodyWeightKg: 82 }));
     expect(actual.status).toBe("SUSPECT_WEIGHT_CHANGE");
     expect(actual.tdeeKcal).not.toBeNull();
     expect(Number.isFinite(actual.tdeeKcal)).toBe(true);
   });
 
+  it("judges the threshold as a rate, so the same delta flips verdict with the window", () => {
+    // The identical 2 kg change is unremarkable over four weeks (0.5 kg/wk) and alarming over
+    // one (2 kg/wk). An absolute threshold could not tell these apart, and would flag every
+    // ordinary cut as soon as the window grew.
+    const overFourWeeks = adaptiveTdee(
+      anInput({ trendStartKg: 82, trendEndKg: 80, bodyWeightKg: 82, completeDays: 28 }),
+    );
+    const overOneWeek = adaptiveTdee(
+      anInput({
+        trendStartKg: 82,
+        trendEndKg: 80,
+        bodyWeightKg: 82,
+        completeDays: 14,
+        weighInsInWindow: 14,
+      }),
+    );
+    expect(overFourWeeks.status).toBe("OK");
+    // 14 days is still inside the calibration window, so CALIBRATING outranks the badge --
+    // but the rate itself is well over the limit.
+    expect(overOneWeek.status).toBe("CALIBRATING");
+  });
+
   it("cannot evaluate the suspect badge without a bodyweight", () => {
-    // The r09 worked example never states a window bodyweight. Supplying 82 would flag week 4 too
-    // (|delta| 0.9 > 0.82), which contradicts spec 07's expected OK for that week -- see the report.
-    const withWeight = adaptiveTdee(anInput({ bodyWeightKg: 82 }));
-    const without = adaptiveTdee(anInput({ bodyWeightKg: null }));
+    const suspectRate = { trendStartKg: 82.4, trendEndKg: 78 };
+    const withWeight = adaptiveTdee(anInput({ ...suspectRate, bodyWeightKg: 82 }));
+    const without = adaptiveTdee(anInput({ ...suspectRate, bodyWeightKg: null }));
     expect(withWeight.status).toBe("SUSPECT_WEIGHT_CHANGE");
     expect(without.status).toBe("OK");
+    // The badge never changes the number, only how it is presented.
     expect(withWeight.tdeeKcal).toBe(without.tdeeKcal);
   });
 
+  it("leaves the r09 worked week-4 vector unflagged even with a bodyweight", () => {
+    // 0.9 kg over 28 days is 0.225 kg/week -- a slow cut. Under the earlier absolute reading
+    // (0.9 > 0.82) this was wrongly flagged, which is what forced the r09 example to omit a
+    // bodyweight. The rate reading removes the contradiction.
+    expect(adaptiveTdee(anInput({ bodyWeightKg: 82 })).status).toBe("OK");
+  });
+
   it("CALIBRATING takes precedence over the suspect badge", () => {
+    // 3.4 kg over 14 days is 1.7 kg/week, comfortably suspect -- so this genuinely exercises
+    // the precedence rather than passing because nothing was suspect in the first place.
     const actual = adaptiveTdee(
-      anInput({ completeDays: 14, weighInsInWindow: 14, trendEndKg: 81.2, bodyWeightKg: 82 }),
+      anInput({ completeDays: 14, weighInsInWindow: 14, trendEndKg: 79, bodyWeightKg: 82 }),
     );
     expect(actual.status).toBe("CALIBRATING");
   });
 
-  it("does not flag a change inside 1% of bodyweight", () => {
+  it("does not flag a rate inside 1% of bodyweight per week", () => {
     const actual = adaptiveTdee(anInput({ trendEndKg: 81.7, bodyWeightKg: 82 }));
     expect(actual.status).toBe("OK");
   });

@@ -201,8 +201,19 @@ export function adaptiveTdee(input: TdeeInput): TdeeEstimate {
   }
 
   const deltaKg = trendEndKg - trendStartKg;
+  // The threshold is a RATE, not an absolute delta.
+  //
+  // 1% of bodyweight PER WEEK is the conventional ceiling for a sustainable rate of change, so
+  // it only means anything once normalised by the window length. Comparing the raw window delta
+  // against it — as an earlier revision did — flags every ordinary cut the moment the window
+  // grows: an 82 kg person losing 0.9 kg over four weeks is a slow cut, not a suspect reading,
+  // yet 0.9 > 0.82 would badge it. Normalising by weeks makes the guard scale-free and lets the
+  // window length change without silently re-tuning the sensitivity.
+  // No zero guard: the ladder above already returned unless `completeDays >= 14`, so this
+  // division is always safe. A defensive ternary here would be permanently unreachable.
+  const weeklyRateKg = Math.abs(deltaKg) / (completeDays / 7);
   const suspect =
-    bodyWeightKg !== null && Math.abs(deltaKg) > TDEE_SUSPECT_DELTA_FRACTION * bodyWeightKg;
+    bodyWeightKg !== null && weeklyRateKg > TDEE_SUSPECT_DELTA_FRACTION * bodyWeightKg;
 
   let status: TdeeStatus = "OK";
   if (completeDays < TDEE_WARMUP_DAYS) status = "CALIBRATING";

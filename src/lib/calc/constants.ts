@@ -157,7 +157,11 @@ export const TDEE_WARMUP_DAYS = 21;
  */
 export const TDEE_MAX_WOW_DELTA = 250;
 
-/** A window delta beyond this fraction of bodyweight is badged suspect, but still returned. */
+/**
+ * A trend-weight change faster than this fraction of bodyweight PER WEEK is badged suspect,
+ * but still returned. 1%/week is the conventional ceiling for a sustainable rate of change.
+ * Applied as a rate, never as an absolute window delta — see adaptiveTdee.
+ */
 export const TDEE_SUSPECT_DELTA_FRACTION = 0.01;
 
 /** Mifflin-St Jeor, sex-split clinical form. verified (Mifflin 1990). */
