@@ -15,6 +15,13 @@
       "when": 1789238296257,
       "tag": "0001_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789241261194,
+      "tag": "0002_workouts",
+      "breakpoints": true
     }
   ]
 }

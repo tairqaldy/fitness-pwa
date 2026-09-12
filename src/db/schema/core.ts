@@ -1,20 +1,31 @@
 /**
- * Canonical database schema (Cloudflare D1 / SQLite) — Drizzle definitions.
+ * The tables already shipped by migrations `0000_init` and `0001_credentials`, carried forward.
  *
- * CONVENTIONS (see DECISIONS.md; these are enforced everywhere, no exceptions):
- *  - **ids**: `text` primary keys holding a sortable, client-generatable id (see
- *    `src/lib/ids.ts`). Never an autoincrement integer — ids must be mintable offline so a
- *    row created on the phone with no network keeps its identity when it syncs.
- *  - **instants**: `integer({ mode: "timestamp_ms" })` — ALWAYS `_ms`, never plain
- *    `"timestamp"`, which silently truncates to whole seconds. Mixing the two modes across
- *    tables is a guaranteed off-by-1000 bug. Column name ends in `_at`.
- *  - **local calendar days**: `text` `'YYYY-MM-DD'` in the user's timezone (Asia/Almaty).
- *    Column name ends in `_day`. A "day" is a human concept and must not drift with UTC.
- *  - **booleans**: `integer({ mode: "boolean" })` — SQLite has no boolean type.
- *  - **weights, RPE, RIR**: `real`. Microloading needs 1.25 kg plates, so integers do not fit.
- *    PR detection therefore compares with an epsilon, never `===` (see src/lib/calc).
- *  - **counts (kcal, millilitres, grams of macro)**: `integer` — they are genuinely whole.
- *  - **JSON**: `text({ mode: "json" })`, always parsed through a Zod schema at the boundary.
+ * ## Do not "tidy" this file
+ *
+ * Every definition below is **verbatim** from the migrations that are already applied to a
+ * database holding real rows. It deliberately does NOT use the `src/db/columns.ts` factories,
+ * even where a factory would be shorter: `tsNow("created_at")` adds a
+ * `DEFAULT (unixepoch() * 1000)` that `integer("created_at", { mode: "timestamp_ms" }).notNull()`
+ * does not have, and SQLite cannot `ALTER COLUMN`. drizzle-kit's answer to a changed default is
+ * the 12-step recreate — `CREATE TABLE __new_users` / `INSERT … SELECT` / `DROP TABLE users` /
+ * rename — and on D1 that `DROP TABLE` runs an implicit `DELETE FROM` inside the migration's
+ * transaction, where `PRAGMA foreign_keys=OFF` is a documented no-op, so every `ON DELETE cascade`
+ * child row is silently deleted while the migration reports success (reproduced in
+ * `docs/research/r02-drizzle-d1-access-and-migrations.md` §4.1: 3 sets → 0).
+ *
+ * So: a cosmetic edit here is a data-loss event. New tables use the factories; these six do not.
+ *
+ * ## Two other frozen details
+ *
+ *  - **`users.birth_day` has no GLOB CHECK.** It shipped without one, and adding a CHECK to a
+ *    shipped table is the same recreate. Zod enforces the `'YYYY-MM-DD'` format on write, and
+ *    `tests/db/schema.test.ts` allow-lists this column by name so the omission stays deliberate.
+ *  - **`settings.user_id` / `sessions.user_id` / `credentials.user_id` keep `ON DELETE cascade`.**
+ *    Grandfathered (rule 12): `users` holds exactly one row that is never deleted and all three
+ *    children are regenerable metadata. Every FK added after 0001 is `restrict` instead.
+ *
+ * Conventions for new tables live in `src/db/columns.ts`; the enum domains in `src/db/enums.ts`.
  */
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
